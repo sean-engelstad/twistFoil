@@ -10,7 +10,7 @@ class Airfoil {
 public:
     //mesh settings
     //static const float PI = 3.14159265358979323846;
-    static const int NXI = 10;
+    static const int NXI = 200;
     static const int NETA = 1;
     static const int NGAMMA = 1;
     static const int NPTS = NXI * NETA * NGAMMA;
@@ -24,35 +24,28 @@ public:
     float tmp[2][NXI];
     float pos[2][NXI];
 
-public:
     Airfoil(float tc, float aoa, float beta, float mag) {
         toverc = tc;
         twistAOA = aoa;
         phaseShift = beta;
         twistMag = mag;
 
-        void generateAirfoil();
-    }
-
-public:
-    void generateAirfoil() {
+        //generate airfoil
+        //
         //loop over each point in the spline
         for (int i = 0; i < NXI; i++) {
             //parametric curve parameter xi for x(xi), y(xi)
             xi[i] = i * 2.0 * M_PI / (NXI-1);
 
             //initialize symmetric airfoil
-            //sym[0][i] = 0.5*(cos(xi[i]) - 1);
-            //sym[1][i] = 2.0/3.0 * toverc * sin(xi[i]) * sin(xi[i]/2.0);
-            sym[0][i] = 1.0;
-            sym[1][i] = 2.0;
+            sym[0][i] = 0.5*(cos(xi[i]) - 1);
+            sym[1][i] = 2.0/3.0 * toverc * sin(xi[i]) * sin(xi[i]/2.0);
             std::cout << "step " << i << " x,y= " << sym[0][i] << ", " << sym[1][i] << "\n";
 
             //rotate airfoil
         }  
-    } 
+    }
 
-public:
     void printToVtk() {
         using namespace std;
         //print airfoil to vtk file        
@@ -75,7 +68,7 @@ public:
 
         //loop over xi the airfoil curve
         for (int i = 0; i < NXI; i++) {
-            myfile << 1.0 << sp << 2.0 << sp << 0.0;
+            myfile << sym[0][i] << sp << sym[1][i] << sp << 0.0;
             myfile << "\n";
         }
 
