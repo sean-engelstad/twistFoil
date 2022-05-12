@@ -1,7 +1,7 @@
 //cpp file to make arrays
 #include <airfoil.h>
-
-
+#include <rib.h>
+#include <iostream>
 
 int main() {    
 
@@ -12,8 +12,8 @@ int main() {
     myDV.twistMag = 0.3;
     myDV.AOA = 10.0;
 
-    Airfoil airfoil(myDV);
-    airfoil.printToVtk();
+    Rib myrib(myDV);
+    myrib.printToVtk();
     
     return 0;
 }
