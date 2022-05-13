@@ -1,7 +1,6 @@
 //cpp file to make arrays
 #include <airfoil.h>
-
-
+#include <string>
 
 int main() {    
 
@@ -13,7 +12,8 @@ int main() {
     myDV.AOA = 10.0;
 
     Airfoil airfoil(myDV);
-    airfoil.printToVtk();
+    std::string scalarField = "phaseShift";
+    airfoil.printToVtk(scalarField);
     
     return 0;
 }
