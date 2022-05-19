@@ -1,2 +1,2 @@
 default:
-	${CXX} -g -I${TWIST_FOIL}/src -o wing.o wing.cpp
+	${CXX} -g -I${TWIST_FOIL}/src -o rib.o rib.cpp

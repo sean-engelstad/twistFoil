@@ -30,13 +30,13 @@ int main() {
     myDV[0].toverc = 0.1;
     myDV[0].twistAOA = 20;
     myDV[0].phaseShift = 0.3;
-    myDV[0].twistMag = 0.3;
-    myDV[0].AOA = 10.0;
+    myDV[0].twistMag = 0.5;
+    myDV[0].AOA = 3.0;
     myDV[1].toverc = 0.1;
     myDV[1].twistAOA = 20;
     myDV[1].phaseShift = 0.3;
     myDV[1].twistMag = 0.3;
-    myDV[1].AOA = 10.0;
+    myDV[1].AOA = -5.0;
 
     for (int i = 0; i < 2; i++) {
         wingDV.airfoilDV[i] = myDV[1];

@@ -103,10 +103,8 @@ public:
             sens[1][i].twistMag = tmp[1][i] * twistFunction_twistMag_sens;
 
             //update previous sensitivities during twist
-            sens[0][i].toverc = sens[0][i].toverc * twistFunction;
-            sens[1][i].toverc = sens[1][i].toverc * twistFunction;
-            sens[0][i].twistAOA = sens[0][i].twistAOA * twistFunction;
-            sens[0][i].twistAOA = sens[1][i].twistAOA * twistFunction;
+            sens[1][i].toverc *= twistFunction;
+            sens[1][i].twistAOA *= twistFunction;
         }  
 
         //initialize dsens which represents sensitivity of dpos
