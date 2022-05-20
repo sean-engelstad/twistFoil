@@ -36,17 +36,27 @@ public:
     //sensitivity data
     DV sens[2][NXI];
 
-    Airfoil() {
-        // dummyDV.toverc = 0.1;
-        // dummyDV.twistAOA = 0.0;
-        // dummyDV.phaseShift = 0.0;
-        // dummyDV.twistMag = 0.0;
-        // dummyDV.AOA = 0.0;
-        // dummyDV.chord = 1.0;
-        //Airfoil(dummyDV);
+    //derivative testing data
+    double testpos[2][NXI];
+    DV testsens[2][NXI];
+
+    Airfoil (double vector[]) {
+        Airfoil::DV airfoilDV;
+        airfoilDV.toverc = vector[0];
+        airfoilDV.twistAOA = vector[1];
+        airfoilDV.phaseShift = vector[2];
+        airfoilDV.twistMag = vector[3];
+        airfoilDV.AOA = vector[4];
+        airfoilDV.chord = vector[5];
+
+        Airfoil::init(airfoilDV);
     }
 
     Airfoil(DV airfoilDV) {
+        Airfoil::init(airfoilDV);
+    }
+
+    void init(DV airfoilDV) {
         //initialize airfoil sensitivity
         for (int d = 0; d < 2; d++) {
             for (int i = 0; i < NXI; i++) {
@@ -76,6 +86,7 @@ public:
             //std::cout << "step " << i << " x,y= " << sym[0][i] << ", " << sym[1][i] << "\n";
             
             //record airfoil sensitivity to toverc in y direction
+            sens[0][i].toverc = 0.0;
             sens[1][i].toverc = 2.0/3.0 * sin(xi[i]) * sin(xi[i]/2.0);
 
             //rotate airfoil
@@ -86,13 +97,12 @@ public:
             sens[0][i].toverc = sin(twistAOA_rad) * sens[1][i].toverc;
             sens[1][i].toverc = cos(twistAOA_rad) * sens[1][i].toverc;
             sens[0][i].twistAOA = -sin(twistAOA_rad) * deg_rad_sens * sym[0][i] + cos(twistAOA_rad) * deg_rad_sens * sym[1][i];
-            sens[0][i].twistAOA = -cos(twistAOA_rad) * deg_rad_sens * sym[0][i] - sin(twistAOA_rad) * deg_rad_sens * sym[1][i];
+            sens[1][i].twistAOA = -cos(twistAOA_rad) * deg_rad_sens * sym[0][i] - sin(twistAOA_rad) * deg_rad_sens * sym[1][i];
 
-            //twist downwards
+            //twist downwards quantities
             double argument = xi[i] - airfoilDV.phaseShift *  sin(0.5*xi[i]);
             double LEactivation = 1 - cos(argument);
             double twistFunction = (1-airfoilDV.twistMag*LEactivation);
-            tmp[1][i] = tmp[1][i] * twistFunction;
 
             //record new sensitivities to twist
             double arg_phaseshift_sens = -sin(0.5 * xi[i]);
@@ -102,9 +112,13 @@ public:
             sens[1][i].phaseShift = tmp[1][i] * twistFunction_phaseshift_sens;
             sens[1][i].twistMag = tmp[1][i] * twistFunction_twistMag_sens;
 
+            //apply the twist downwards
+            tmp[1][i] *= twistFunction;
+
             //update previous sensitivities during twist
             sens[1][i].toverc *= twistFunction;
             sens[1][i].twistAOA *= twistFunction;
+
         }  
 
         //initialize dsens which represents sensitivity of dpos
@@ -132,8 +146,8 @@ public:
                 //compute position differentials, dpos
                 if (i == 0) {
                     dpos[direc][0] = tmp[direc][1] - tmp[direc][0];
-                } else if (i == NXI) {
-                    dpos[direc][NXI] = tmp[direc][NXI] - tmp[direc][NXI-1];
+                } else if (i == NXI-1) {
+                    dpos[direc][NXI-1] = tmp[direc][NXI-1] - tmp[direc][NXI-2];
                 } else {
                     dpos[direc][i] = 0.5*tmp[direc][i+1] - 0.5*tmp[direc][i-1];
                 }
@@ -146,16 +160,16 @@ public:
                     dsens[direc][0].twistAOA = sens[direc][1].twistAOA - sens[direc][0].twistAOA;
                     dsens[direc][0].phaseShift = sens[direc][1].phaseShift - sens[direc][0].phaseShift;
                     dsens[direc][0].twistMag = sens[direc][1].twistMag - sens[direc][0].twistMag;
-                } else if (i == NXI) {
-                    dsens[direc][NXI].toverc = sens[direc][NXI].toverc - sens[direc][NXI-1].toverc;
-                    dsens[direc][NXI].twistAOA = sens[direc][NXI].twistAOA - sens[direc][NXI-1].twistAOA;
-                    dsens[direc][NXI].phaseShift = sens[direc][NXI].phaseShift - sens[direc][NXI-1].phaseShift;
-                    dsens[direc][NXI].twistMag = sens[direc][NXI].twistMag - sens[direc][NXI-1].twistMag;
+                } else if (i == NXI-1) {
+                    dsens[direc][NXI-1].toverc = sens[direc][NXI-1].toverc - sens[direc][NXI-2].toverc;
+                    dsens[direc][NXI-1].twistAOA = sens[direc][NXI-1].twistAOA - sens[direc][NXI-2].twistAOA;
+                    dsens[direc][NXI-1].phaseShift = sens[direc][NXI-1].phaseShift - sens[direc][NXI-2].phaseShift;
+                    dsens[direc][NXI-1].twistMag = sens[direc][NXI-1].twistMag - sens[direc][NXI-2].twistMag;
                 } else {
-                    dsens[direc][i].toverc = 0.5 * sens[direc][i+1].toverc - 0.5 * sens[direc][i].toverc;
-                    dsens[direc][i].twistAOA = sens[direc][i+1].twistAOA - sens[direc][i].twistAOA;
-                    dsens[direc][i].phaseShift = sens[direc][i+1].phaseShift - sens[direc][i].phaseShift;
-                    dsens[direc][i].twistMag = sens[direc][i+1].twistMag - sens[direc][i].twistMag;
+                    dsens[direc][i].toverc = 0.5 * sens[direc][i+1].toverc - 0.5 * sens[direc][i-1].toverc;
+                    dsens[direc][i].twistAOA = 0.5 * sens[direc][i+1].twistAOA - 0.5 * sens[direc][i-1].twistAOA;
+                    dsens[direc][i].phaseShift = 0.5 * sens[direc][i+1].phaseShift - 0.5 * sens[direc][i-1].phaseShift;
+                    dsens[direc][i].twistMag = 0.5 * sens[direc][i+1].twistMag - 0.5 * sens[direc][i-1].twistMag;
                 }
                 dsens[direc][i].toverc /= dxi;
                 dsens[direc][i].twistAOA /= dxi;
@@ -166,11 +180,11 @@ public:
             //std::cout << "ind = " << i << " dx = " << dpos[0][i] << " dy = " << dpos[1][i] << std::endl;
             
             //compute dot product squared (x*dx + y*dy)^2
-            dotProd[i] = 0;
+            dotProd[i] = 0.0;
             for (int direc = 0; direc < 2; direc++) {
                 dotProd[i] += tmp[direc][i] * dpos[direc][i];
             }
-            dotProd[i] = pow(dotProd[i], 2);
+            dotProd[i] *= dotProd[i]; //square it
 
             //initialize dot product sensitivity
             dotprod_sens[i].AOA = 0.0;
@@ -188,12 +202,39 @@ public:
                 dotprod_sens[i].phaseShift += sens[direc][i].phaseShift * dpos[direc][i] + tmp[direc][i] * dsens[direc][i].phaseShift;
                 dotprod_sens[i].twistMag += sens[direc][i].twistMag * dpos[direc][i] + tmp[direc][i] * dsens[direc][i].twistMag;
             }
-            dotprod_sens[i].toverc = 2*dotProd[i]*dotprod_sens[i].toverc;
-            dotprod_sens[i].twistAOA = 2*dotProd[i]*dotprod_sens[i].twistAOA;
-            dotprod_sens[i].phaseShift = 2*dotProd[i]*dotprod_sens[i].phaseShift;
-            dotprod_sens[i].twistMag = 2*dotProd[i]*dotprod_sens[i].twistMag;
+            dotprod_sens[i].toverc *= 2*dotProd[i];
+            dotprod_sens[i].twistAOA *= 2*dotProd[i];
+            dotprod_sens[i].phaseShift *= 2*dotProd[i];
+            dotprod_sens[i].twistMag *= 2*dotProd[i];
             //std::cout << "(ind, dotProd^2) = (" << i << ", " << dotProd[i] << std::endl;
+
+            //current state of derivative verification, stuck here and dotProd sens not matching
+            testpos[0][i] = 1.0 * dotProd[i];
+            testsens[0][i].toverc = 1.0 * dotprod_sens[i].toverc;
+            testsens[0][i].twistAOA = 1.0 * dotprod_sens[i].twistAOA;
+            testsens[0][i].AOA = 1.0 * dotprod_sens[i].AOA;
+            testsens[0][i].chord = 1.0 * dotprod_sens[i].chord;
+            testsens[0][i].phaseShift = 1.0 * dotprod_sens[i].phaseShift;
+            testsens[0][i].twistMag = 1.0 * dotprod_sens[i].twistMag;
+            testpos[1][i] = 0.0;
+            testsens[1][i].toverc = 0.0;
+            testsens[1][i].twistAOA = 0.0;
+            testsens[1][i].AOA = 0.0;
+            testsens[1][i].chord = 0.0;
+            testsens[1][i].phaseShift = 0.0;
+            testsens[1][i].twistMag = 0.0;
         }
+
+        // for (int d = 0; d < 2; d++) {
+        //     testpos[d][i] = 1.0 * dpos[d][i];
+        //     testsens[d][i].toverc = 1.0 * dsens[d][i].toverc;
+        //     testsens[d][i].twistAOA = 1.0 * dsens[d][i].twistAOA;
+        //     testsens[d][i].AOA = 1.0 * dsens[d][i].AOA;
+        //     testsens[d][i].chord = 1.0 * dsens[d][i].chord;
+        //     testsens[d][i].phaseShift = 1.0 * dsens[d][i].phaseShift;
+        //     testsens[d][i].twistMag = 1.0 * dsens[d][i].twistMag;
+        //     //std::cout << "direction " << d << " point " << i << " sensitivity " << sens[d][i].toverc << std::endl;
+        // }
 
         //use min dot product squared on left half to get leading edge
         int lowind = int(1.0/4 * NXI);
