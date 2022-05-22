@@ -14,11 +14,11 @@ public:
     static constexpr double KS_rho = 100000.0;
 
     struct DV {
-        double toverc;
-        double twistAOA;
-        double phaseShift;
-        double twistMag;
-        double AOA;
+        double toverc = 0.0;
+        double twistAOA = 0.0;
+        double phaseShift = 0.0;
+        double twistMag = 0.0;
+        double AOA = 0.0;
         double chord = 1.0;
     };
 
@@ -35,10 +35,21 @@ public:
 
     //sensitivity data
     DV sens[2][NXI];
+    DV tmp_sens[2][NXI];
 
     //derivative testing data
     double testpos[2][NXI];
     DV testsens[2][NXI];
+
+    Airfoil() {
+        Airfoil::DV airfoilDV;
+        airfoilDV.toverc = 0.0;
+        airfoilDV.twistAOA = 0.0;
+        airfoilDV.phaseShift = 0.0;
+        airfoilDV.twistMag = 0.0;
+        airfoilDV.AOA = 0.0;
+        airfoilDV.chord = 0.0;
+    }
 
     Airfoil (double vector[]) {
         Airfoil::DV airfoilDV;
@@ -184,6 +195,7 @@ public:
             for (int direc = 0; direc < 2; direc++) {
                 dotProd[i] += tmp[direc][i] * dpos[direc][i];
             }
+            double dotProd0 = dotProd[i];
             dotProd[i] *= dotProd[i]; //square it
 
             //initialize dot product sensitivity
@@ -202,39 +214,12 @@ public:
                 dotprod_sens[i].phaseShift += sens[direc][i].phaseShift * dpos[direc][i] + tmp[direc][i] * dsens[direc][i].phaseShift;
                 dotprod_sens[i].twistMag += sens[direc][i].twistMag * dpos[direc][i] + tmp[direc][i] * dsens[direc][i].twistMag;
             }
-            dotprod_sens[i].toverc *= 2*dotProd[i];
-            dotprod_sens[i].twistAOA *= 2*dotProd[i];
-            dotprod_sens[i].phaseShift *= 2*dotProd[i];
-            dotprod_sens[i].twistMag *= 2*dotProd[i];
+            dotprod_sens[i].toverc *= 2*dotProd0;
+            dotprod_sens[i].twistAOA *= 2*dotProd0;
+            dotprod_sens[i].phaseShift *= 2*dotProd0;
+            dotprod_sens[i].twistMag *= 2*dotProd0;
             //std::cout << "(ind, dotProd^2) = (" << i << ", " << dotProd[i] << std::endl;
-
-            //current state of derivative verification, stuck here and dotProd sens not matching
-            testpos[0][i] = 1.0 * dotProd[i];
-            testsens[0][i].toverc = 1.0 * dotprod_sens[i].toverc;
-            testsens[0][i].twistAOA = 1.0 * dotprod_sens[i].twistAOA;
-            testsens[0][i].AOA = 1.0 * dotprod_sens[i].AOA;
-            testsens[0][i].chord = 1.0 * dotprod_sens[i].chord;
-            testsens[0][i].phaseShift = 1.0 * dotprod_sens[i].phaseShift;
-            testsens[0][i].twistMag = 1.0 * dotprod_sens[i].twistMag;
-            testpos[1][i] = 0.0;
-            testsens[1][i].toverc = 0.0;
-            testsens[1][i].twistAOA = 0.0;
-            testsens[1][i].AOA = 0.0;
-            testsens[1][i].chord = 0.0;
-            testsens[1][i].phaseShift = 0.0;
-            testsens[1][i].twistMag = 0.0;
         }
-
-        // for (int d = 0; d < 2; d++) {
-        //     testpos[d][i] = 1.0 * dpos[d][i];
-        //     testsens[d][i].toverc = 1.0 * dsens[d][i].toverc;
-        //     testsens[d][i].twistAOA = 1.0 * dsens[d][i].twistAOA;
-        //     testsens[d][i].AOA = 1.0 * dsens[d][i].AOA;
-        //     testsens[d][i].chord = 1.0 * dsens[d][i].chord;
-        //     testsens[d][i].phaseShift = 1.0 * dsens[d][i].phaseShift;
-        //     testsens[d][i].twistMag = 1.0 * dsens[d][i].twistMag;
-        //     //std::cout << "direction " << d << " point " << i << " sensitivity " << sens[d][i].toverc << std::endl;
-        // }
 
         //use min dot product squared on left half to get leading edge
         int lowind = int(1.0/4 * NXI);
@@ -248,6 +233,8 @@ public:
         minVec_sum_sens.twistAOA = 0.0;
         minVec_sum_sens.phaseShift = 0.0;
         minVec_sum_sens.twistMag = 0.0;
+        minVec_sum_sens.AOA = 0.0;
+        minVec_sum_sens.chord = 0.0;
 
         for (int i = 0; i < NXI; i++) {
 
@@ -265,6 +252,8 @@ public:
             minVec_sens[i].twistAOA = 0.0;
             minVec_sens[i].phaseShift = 0.0;
             minVec_sens[i].twistMag = 0.0;
+            minVec_sens[i].AOA = 0.0;
+            minVec_sens[i].chord = 0.0;
 
             //initialize minvec sum sens
 
@@ -276,10 +265,10 @@ public:
                 minVec_sens[i].twistMag = 0.0;
             } else {
                 //update minvec sens
-                minVec_sens[i].toverc = exp(-KS_rho * dotProd[i]) * dotprod_sens[i].toverc;
-                minVec_sens[i].twistAOA = exp(-KS_rho * dotProd[i]) * dotprod_sens[i].twistAOA;
-                minVec_sens[i].phaseShift = exp(-KS_rho * dotProd[i]) * dotprod_sens[i].phaseShift;
-                minVec_sens[i].twistMag = exp(-KS_rho * dotProd[i]) * dotprod_sens[i].twistMag;
+                minVec_sens[i].toverc = minVec[i] * -KS_rho * dotprod_sens[i].toverc;
+                minVec_sens[i].twistAOA = minVec[i] * -KS_rho * dotprod_sens[i].twistAOA;
+                minVec_sens[i].phaseShift = minVec[i] * -KS_rho * dotprod_sens[i].phaseShift;
+                minVec_sens[i].twistMag = minVec[i] * -KS_rho * dotprod_sens[i].twistMag;
 
                 //update minvec sum sens
                 minVec_sum_sens.toverc += minVec_sens[i].toverc;
@@ -287,19 +276,20 @@ public:
                 minVec_sum_sens.phaseShift += minVec_sens[i].phaseShift;
                 minVec_sum_sens.twistMag += minVec_sens[i].twistMag;
             }
+
         }
 
         for (int i = 0; i < NXI; i++) {
 
             //normalize minvec so total sum is 1
-            minVec[i] = minVec[i] / min_vec_sum;
+            minVec[i] /= min_vec_sum;
 
             //update minvec sensitivity with quotient rule
             //current list of sens args: toverc, twistAOA, phaseShift, twistMag
-            minVec_sens[i].toverc = minVec_sens[i].toverc / min_vec_sum - minVec[i] * minVec_sum_sens.toverc / min_vec_sum / min_vec_sum;
-            minVec_sens[i].twistAOA = minVec_sens[i].twistAOA / min_vec_sum - minVec[i] * minVec_sum_sens.twistAOA / min_vec_sum / min_vec_sum;
-            minVec_sens[i].phaseShift = minVec_sens[i].phaseShift / min_vec_sum - minVec[i] * minVec_sum_sens.phaseShift / min_vec_sum / min_vec_sum;
-            minVec_sens[i].twistMag = minVec_sens[i].twistMag / min_vec_sum - minVec[i] * minVec_sum_sens.twistMag / min_vec_sum / min_vec_sum;
+            minVec_sens[i].toverc = minVec_sens[i].toverc / min_vec_sum - minVec[i] * minVec_sum_sens.toverc / min_vec_sum;
+            minVec_sens[i].twistAOA = minVec_sens[i].twistAOA / min_vec_sum - minVec[i] * minVec_sum_sens.twistAOA / min_vec_sum;
+            minVec_sens[i].phaseShift = minVec_sens[i].phaseShift / min_vec_sum - minVec[i] * minVec_sum_sens.phaseShift / min_vec_sum;
+            minVec_sens[i].twistMag = minVec_sens[i].twistMag / min_vec_sum - minVec[i] * minVec_sum_sens.twistMag / min_vec_sum;
 
             //std::cout << "(ind, KSminvec) = (" << i << ", " << minVec[i] << ")" << std::endl;
         }
@@ -314,6 +304,8 @@ public:
             pos_LE_sens[d].twistAOA = 0.0;
             pos_LE_sens[d].phaseShift = 0.0;
             pos_LE_sens[d].twistMag = 0.0;
+            pos_LE_sens[d].AOA = 0.0;
+            pos_LE_sens[d].chord = 0.0;
         }
 
         for (int i = 0; i < NXI; i++) {
@@ -340,6 +332,8 @@ public:
         argument_sens.twistAOA = -1.0 * pos_LE_sens[1].twistAOA / pos_LE[0] + pos_LE_sens[0].twistAOA * pos_LE[1] / pos_LE[0] / pos_LE[0];
         argument_sens.phaseShift = -1.0 * pos_LE_sens[1].phaseShift / pos_LE[0] + pos_LE_sens[0].phaseShift * pos_LE[1] / pos_LE[0] / pos_LE[0];
         argument_sens.twistMag = -1.0 * pos_LE_sens[1].twistMag / pos_LE[0] + pos_LE_sens[0].twistMag * pos_LE[1] / pos_LE[0] / pos_LE[0];
+        argument_sens.AOA = 0.0;
+        argument_sens.chord = 0.0;
 
         //compute sensitivity for AOA_LE
         DV AOA_LE_sens;
@@ -347,41 +341,49 @@ public:
         AOA_LE_sens.twistAOA = 1.0/(1+argument*argument) * argument_sens.twistAOA;
         AOA_LE_sens.phaseShift = 1.0/(1+argument*argument) * argument_sens.phaseShift;
         AOA_LE_sens.twistMag = 1.0/(1+argument*argument) * argument_sens.twistMag;
-
+        AOA_LE_sens.AOA = 0.0;
+        AOA_LE_sens.chord = 0.0;
 
         //std::cout << "LE: (x,y,AOA) = (" << pos_LE[0] << ", " << pos_LE[1] << ", " << AOA_LE << ")" << std::endl;
         
         //rotate airfoil back to zero AOA
         for (int i = 0; i < NXI; i++) {
 
-            //copy tmp positions to final airfoil positions
-            pos[0][i] = tmp[0][i];
-            pos[1][i] = tmp[1][i];
-
             //rotate airfoil back to zero angle of attack with AOA_LE
-            pos[0][i] = cos(AOA_LE) * pos[0][i] - sin(AOA_LE) * pos[1][i];
-            pos[1][i] = sin(AOA_LE) * pos[0][i] + cos(AOA_LE) * pos[1][i];
+            pos[0][i] = cos(AOA_LE) * tmp[0][i] - sin(AOA_LE) * tmp[1][i];
+            pos[1][i] = sin(AOA_LE) * tmp[0][i] + cos(AOA_LE) * tmp[1][i];
+
+            //copy the temporary sensitivities
+            for (int d = 0; d < 2; d++) {
+                tmp_sens[d][i].toverc = sens[d][i].toverc;
+                tmp_sens[d][i].twistAOA = sens[d][i].twistAOA;
+                tmp_sens[d][i].phaseShift = sens[d][i].phaseShift;
+                tmp_sens[d][i].twistMag = sens[d][i].twistMag;
+                tmp_sens[d][i].AOA = sens[d][i].AOA;
+                tmp_sens[d][i].chord = sens[d][i].chord;
+            }
 
             //update sens with AOA_LE transformation
-            sens[0][i].toverc = -sin(AOA_LE) * AOA_LE_sens.toverc * pos[0][i] + cos(AOA_LE) * sens[0][i].toverc -\
-            cos(AOA_LE) * AOA_LE_sens.toverc * pos[1][i] - sin(AOA_LE) * sens[1][i].toverc;
-            sens[1][i].toverc = cos(AOA_LE) * AOA_LE_sens.toverc * pos[0][i] + sin(AOA_LE) * sens[0][i].toverc -\
-            sin(AOA_LE) * AOA_LE_sens.toverc * pos[1][i] + cos(AOA_LE) * sens[1][i].toverc;
+            sens[0][i].toverc = -sin(AOA_LE) * AOA_LE_sens.toverc * tmp[0][i] + cos(AOA_LE) * tmp_sens[0][i].toverc -\
+            cos(AOA_LE) * AOA_LE_sens.toverc * tmp[1][i] - sin(AOA_LE) * tmp_sens[1][i].toverc;
+            sens[1][i].toverc = cos(AOA_LE) * AOA_LE_sens.toverc * tmp[0][i] + sin(AOA_LE) * tmp_sens[0][i].toverc -\
+            sin(AOA_LE) * AOA_LE_sens.toverc * tmp[1][i] + cos(AOA_LE) * tmp_sens[1][i].toverc;
 
-            sens[0][i].twistAOA = -sin(AOA_LE) * AOA_LE_sens.twistAOA * pos[0][i] + cos(AOA_LE) * sens[0][i].twistAOA -\
-            cos(AOA_LE) * AOA_LE_sens.twistAOA * pos[1][i] - sin(AOA_LE) * sens[1][i].twistAOA;
-            sens[1][i].twistAOA = cos(AOA_LE) * AOA_LE_sens.twistAOA * pos[0][i] + sin(AOA_LE) * sens[0][i].twistAOA -\
-            sin(AOA_LE) * AOA_LE_sens.twistAOA * pos[1][i] + cos(AOA_LE) * sens[1][i].twistAOA;
+            sens[0][i].twistAOA = -sin(AOA_LE) * AOA_LE_sens.twistAOA * tmp[0][i] + cos(AOA_LE) * tmp_sens[0][i].twistAOA -\
+            cos(AOA_LE) * AOA_LE_sens.twistAOA * tmp[1][i] - sin(AOA_LE) * tmp_sens[1][i].twistAOA;
+            sens[1][i].twistAOA = cos(AOA_LE) * AOA_LE_sens.twistAOA * tmp[0][i] + sin(AOA_LE) * tmp_sens[0][i].twistAOA -\
+            sin(AOA_LE) * AOA_LE_sens.twistAOA * tmp[1][i] + cos(AOA_LE) * tmp_sens[1][i].twistAOA;
 
-            sens[0][i].phaseShift = -sin(AOA_LE) * AOA_LE_sens.phaseShift * pos[0][i] + cos(AOA_LE) * sens[0][i].phaseShift -\
-            cos(AOA_LE) * AOA_LE_sens.phaseShift * pos[1][i] - sin(AOA_LE) * sens[1][i].phaseShift;
-            sens[1][i].phaseShift = cos(AOA_LE) * AOA_LE_sens.phaseShift * pos[0][i] + sin(AOA_LE) * sens[0][i].phaseShift -\
-            sin(AOA_LE) * AOA_LE_sens.phaseShift * pos[1][i] + cos(AOA_LE) * sens[1][i].phaseShift;
+            sens[0][i].phaseShift = -sin(AOA_LE) * AOA_LE_sens.phaseShift * tmp[0][i] + cos(AOA_LE) * tmp_sens[0][i].phaseShift -\
+            cos(AOA_LE) * AOA_LE_sens.phaseShift * tmp[1][i] - sin(AOA_LE) * tmp_sens[1][i].phaseShift;
+            sens[1][i].phaseShift = cos(AOA_LE) * AOA_LE_sens.phaseShift * tmp[0][i] + sin(AOA_LE) * tmp_sens[0][i].phaseShift -\
+            sin(AOA_LE) * AOA_LE_sens.phaseShift * tmp[1][i] + cos(AOA_LE) * tmp_sens[1][i].phaseShift;
 
-            sens[0][i].twistMag = -sin(AOA_LE) * AOA_LE_sens.twistMag * pos[0][i] + cos(AOA_LE) * sens[0][i].twistMag -\
-            cos(AOA_LE) * AOA_LE_sens.twistMag * pos[1][i] - sin(AOA_LE) * sens[1][i].twistMag;
-            sens[1][i].twistMag = cos(AOA_LE) * AOA_LE_sens.twistMag * pos[0][i] + sin(AOA_LE) * sens[0][i].twistMag -\
-            sin(AOA_LE) * AOA_LE_sens.twistMag * pos[1][i] + cos(AOA_LE) * sens[1][i].twistMag;
+            sens[0][i].twistMag = -sin(AOA_LE) * AOA_LE_sens.twistMag * tmp[0][i] + cos(AOA_LE) * tmp_sens[0][i].twistMag -\
+            cos(AOA_LE) * AOA_LE_sens.twistMag * tmp[1][i] - sin(AOA_LE) * tmp_sens[1][i].twistMag;
+            sens[1][i].twistMag = cos(AOA_LE) * AOA_LE_sens.twistMag * tmp[0][i] + sin(AOA_LE) * tmp_sens[0][i].twistMag -\
+            sin(AOA_LE) * AOA_LE_sens.twistMag * tmp[1][i] + cos(AOA_LE) * tmp_sens[1][i].twistMag;
+            
         }
 
         //compute pos_LE after rotation
@@ -396,6 +398,8 @@ public:
             pos2_LE_sens[d].twistAOA = 0.0;
             pos2_LE_sens[d].phaseShift = 0.0;
             pos2_LE_sens[d].twistMag = 0.0;
+            pos2_LE_sens[d].AOA = 0.0;
+            pos2_LE_sens[d].chord = 0.0;
         }
 
         pos2_LE_sens[0].toverc = cos(AOA_LE) * pos_LE_sens[0].toverc - sin(AOA_LE) * pos_LE_sens[1].toverc -\
@@ -424,14 +428,14 @@ public:
         //normalize airfoil in x-direction again
         for (int i = 0; i < NXI; i++) {
 
-            //normalize airfoil x position
-            pos[0][i] /= -1.0 * pos2_LE[0];
-
             //update sensitivities for normalize by x position
             sens[0][i].toverc = sens[0][i].toverc * -1.0 / pos2_LE[0] + pos[0][i] * pos2_LE_sens[0].toverc / pos2_LE[0] / pos2_LE[0];
             sens[0][i].twistAOA = sens[0][i].twistAOA * -1.0 / pos2_LE[0] + pos[0][i] * pos2_LE_sens[0].twistAOA / pos2_LE[0] / pos2_LE[0];
             sens[0][i].phaseShift = sens[0][i].phaseShift * -1.0 / pos2_LE[0] + pos[0][i] * pos2_LE_sens[0].phaseShift / pos2_LE[0] / pos2_LE[0];
             sens[0][i].twistMag = sens[0][i].twistMag * -1.0 / pos2_LE[0] + pos[0][i] * pos2_LE_sens[0].twistMag / pos2_LE[0] / pos2_LE[0];
+
+            //normalize airfoil x position
+            pos[0][i] /= -1.0 * pos2_LE[0];
 
             for (int d = 0; d < 2; d++) {
 
@@ -443,7 +447,7 @@ public:
                 sens[d][i].twistAOA *= airfoilDV.chord;
                 sens[d][i].phaseShift *= airfoilDV.chord;
                 sens[d][i].twistMag *= airfoilDV.chord;
-                sens[d][i].chord = pos[d][i];
+                sens[d][i].chord = pos[d][i] / airfoilDV.chord;
             }
 
             //shift airfoil so LE at origin
@@ -463,32 +467,55 @@ public:
             pos[0][i] -= airfoilDV.chord;
             sens[0][i].chord -= 1.0;
 
+            //store previous positions in tmp variable and tmp_sens
+            for (int d = 0; d < 2; d++) {
+                tmp[d][i] = pos[d][i];
+                tmp_sens[d][i].toverc = sens[d][i].toverc;
+                tmp_sens[d][i].twistAOA = sens[d][i].twistAOA;
+                tmp_sens[d][i].phaseShift = sens[d][i].phaseShift;
+                tmp_sens[d][i].twistMag = sens[d][i].twistMag;
+                tmp_sens[d][i].chord = sens[d][i].chord;
+                tmp_sens[d][i].AOA = sens[d][i].AOA;
+            }
+
             //rotate airfoil by normal AOA
-            pos[0][i] = cos(AOA_rad) * pos[0][i] + sin(AOA_rad) * pos[1][i];
-            pos[1][i] = -sin(AOA_rad) * pos[0][i] + cos(AOA_rad) * pos[1][i];
+            pos[0][i] = cos(AOA_rad) * tmp[0][i] + sin(AOA_rad) * tmp[1][i];
+            pos[1][i] = -sin(AOA_rad) * tmp[0][i] + cos(AOA_rad) * tmp[1][i];
 
             //update the sensitivities for AOA rotation
-            sens[0][i].toverc = cos(AOA_rad) * sens[0][i].toverc + sin(AOA_rad) * sens[0][i].toverc;
-            sens[1][i].toverc = -sin(AOA_rad) * sens[0][i].toverc + cos(AOA_rad) * sens[1][i].toverc;
+            sens[0][i].toverc = cos(AOA_rad) * tmp_sens[0][i].toverc + sin(AOA_rad) * tmp_sens[1][i].toverc;
+            sens[1][i].toverc = -sin(AOA_rad) * tmp_sens[0][i].toverc + cos(AOA_rad) * tmp_sens[1][i].toverc;
             
-            sens[0][i].twistAOA = cos(AOA_rad) * sens[0][i].twistAOA + sin(AOA_rad) * sens[0][i].twistAOA;
-            sens[1][i].twistAOA = -sin(AOA_rad) * sens[0][i].twistAOA + cos(AOA_rad) * sens[1][i].twistAOA;
+            sens[0][i].twistAOA = cos(AOA_rad) * tmp_sens[0][i].twistAOA + sin(AOA_rad) * tmp_sens[1][i].twistAOA;
+            sens[1][i].twistAOA = -sin(AOA_rad) * tmp_sens[0][i].twistAOA + cos(AOA_rad) * tmp_sens[1][i].twistAOA;
 
-            sens[0][i].phaseShift = cos(AOA_rad) * sens[0][i].phaseShift + sin(AOA_rad) * sens[0][i].phaseShift;
-            sens[1][i].phaseShift = -sin(AOA_rad) * sens[0][i].phaseShift + cos(AOA_rad) * sens[1][i].phaseShift;
+            sens[0][i].phaseShift = cos(AOA_rad) * tmp_sens[0][i].phaseShift + sin(AOA_rad) * tmp_sens[1][i].phaseShift;
+            sens[1][i].phaseShift = -sin(AOA_rad) * tmp_sens[0][i].phaseShift + cos(AOA_rad) * tmp_sens[1][i].phaseShift;
 
-            sens[0][i].twistMag = cos(AOA_rad) * sens[0][i].twistMag + sin(AOA_rad) * sens[0][i].twistMag;
-            sens[1][i].twistMag = -sin(AOA_rad) * sens[0][i].twistMag + cos(AOA_rad) * sens[1][i].twistMag;
+            sens[0][i].twistMag = cos(AOA_rad) * tmp_sens[0][i].twistMag + sin(AOA_rad) * tmp_sens[1][i].twistMag;
+            sens[1][i].twistMag = -sin(AOA_rad) * tmp_sens[0][i].twistMag + cos(AOA_rad) * tmp_sens[1][i].twistMag;
 
-            sens[0][i].chord = cos(AOA_rad) * sens[0][i].chord + sin(AOA_rad) * sens[0][i].chord;
-            sens[1][i].chord = -sin(AOA_rad) * sens[0][i].chord + cos(AOA_rad) * sens[1][i].chord;
+            sens[0][i].chord = cos(AOA_rad) * tmp_sens[0][i].chord + sin(AOA_rad) * tmp_sens[1][i].chord;
+            sens[1][i].chord = -sin(AOA_rad) * tmp_sens[0][i].chord + cos(AOA_rad) * tmp_sens[1][i].chord;
 
-            sens[0][i].AOA = -sin(AOA_rad) * AOA_rad_sens * pos[0][i] + cos(AOA_rad) * AOA_rad_sens * pos[1][i];
-            sens[1][i].AOA = -cos(AOA_rad) * AOA_rad_sens * pos[0][i] - sin(AOA_rad) * AOA_rad_sens * pos[1][i];
+            sens[0][i].AOA = -sin(AOA_rad) * AOA_rad_sens * tmp[0][i] + cos(AOA_rad) * AOA_rad_sens * tmp[1][i];
+            sens[1][i].AOA = -cos(AOA_rad) * AOA_rad_sens * tmp[0][i] - sin(AOA_rad) * AOA_rad_sens * tmp[1][i];
 
             //shift airfoil chord back so LE at origin
             pos[0][i] += airfoilDV.chord;
             sens[0][i].chord += 1.0;
+
+            //store positions and sensitivities for testing dderiv and finite diff checks
+            for (int d = 0; d < 2; d++) {
+                testpos[d][i] = pos[d][i];
+                testsens[d][i].toverc = sens[d][i].toverc;
+                testsens[d][i].twistAOA = sens[d][i].twistAOA;
+                testsens[d][i].AOA = sens[d][i].AOA;
+                testsens[d][i].chord = sens[d][i].chord;
+                testsens[d][i].phaseShift = sens[d][i].phaseShift;
+                testsens[d][i].twistMag = sens[d][i].twistMag;
+                //std::cout << "direction " << d << " point " << i << " sensitivity " << testpos[d][i] << std::endl;
+            }
         }
     }
 
@@ -518,85 +545,44 @@ public:
             myfile << "\n";
         }
 
-        string scalarName;
-        double total_sens[NXI];
-        if (dvType == "toverc") {
-            scalarName = "TOVERC_SENS";
-            for (int i = 0; i < NXI; i++) {
-                total_sens[i] = pow( pow(sens[0][i].toverc,2) + pow(sens[1][i].toverc,2), 0.5);
-                cout << "total_sens = " << total_sens[i] << std::endl;
-            }
-            myfile << "POINT_DATA " << NXI << "\n";
-            myfile << "SCALARS " << scalarName << " double64 1\n";
-            myfile << "LOOKUP_TABLE default\n";
-            for (int i = 0; i < NXI; i++) {
-                myfile << total_sens[i];
-                myfile << "\n";
-            }
-        } else if (dvType == "twistAOA") {
-            scalarName = "TWISTAOA_SENS";
-            for (int i = 0; i < NXI; i++) {
-                total_sens[i] = pow( pow(sens[0][i].twistAOA,2) + pow(sens[1][i].twistAOA,2), 0.5);
-                cout << "total_sens = " << total_sens[i] << std::endl;
-            }
-            myfile << "POINT_DATA " << NXI << "\n";
-            myfile << "SCALARS " << scalarName << " double64 1\n";
-            myfile << "LOOKUP_TABLE default\n";
-            for (int i = 0; i < NXI; i++) {
-                myfile << total_sens[i];
-                myfile << "\n";
-            }
-        } else if (dvType == "phaseShift") {
-            scalarName = "PHASESHIFT_SENS";
-            for (int i = 0; i < NXI; i++) {
-                total_sens[i] = pow( pow(sens[0][i].phaseShift,2) + pow(sens[1][i].phaseShift,2), 0.5);
-            }
-            myfile << "POINT_DATA " << NXI << "\n";
-            myfile << "SCALARS " << scalarName << " double64 1\n";
-            myfile << "LOOKUP_TABLE default\n";
-            for (int i = 0; i < NXI; i++) {
-                myfile << total_sens[i];
-                myfile << "\n";
-            }
-        } else if (dvType == "twistMag") {
-            scalarName = "TWISTMAG_SENS";
-            for (int i = 0; i < NXI; i++) {
-                total_sens[i] = pow( pow(sens[0][i].twistMag,2) + pow(sens[1][i].twistMag,2), 0.5);
-            }
-            myfile << "POINT_DATA " << NXI << "\n";
-            myfile << "SCALARS " << scalarName << " double64 1\n";
-            myfile << "LOOKUP_TABLE default\n";
-            for (int i = 0; i < NXI; i++) {
-                myfile << total_sens[i];
-                myfile << "\n";
-            }
-        } else if (dvType == "chord") {
-            scalarName = "CHORD_SENS";
-            for (int i = 0; i < NXI; i++) {
-                total_sens[i] = pow( pow(sens[0][i].chord,2) + pow(sens[1][i].chord,2), 0.5);
-            }
-            myfile << "POINT_DATA " << NXI << "\n";
-            myfile << "SCALARS " << scalarName << " double64 1\n";
-            myfile << "LOOKUP_TABLE default\n";
-            for (int i = 0; i < NXI; i++) {
-                myfile << total_sens[i];
-                myfile << "\n";
-            }
-        } else if (dvType == "AOA") {
-            scalarName = "AOA_SENS";
-            for (int i = 0; i < NXI; i++) {
-                total_sens[i] = pow( pow(sens[0][i].AOA,2) + pow(sens[1][i].AOA,2), 0.5);
-            }
-            myfile << "POINT_DATA " << NXI << "\n";
-            myfile << "SCALARS " << scalarName << " double64 1\n";
-            myfile << "LOOKUP_TABLE default\n";
-            for (int i = 0; i < NXI; i++) {
-                myfile << total_sens[i];
-                myfile << "\n";
-            }
+        //Point data for all of the vectors
+        int NPTS = NXI;
+        myfile << "POINT_DATA " << NPTS << "\n";
+        string scalarName = "TOVERC_SENS";
+        myfile << "VECTORS " << scalarName << " double64\n";
+        for (int i = 0; i < NXI; i++) {
+            myfile << sens[0][i].toverc << sp << sens[1][i].toverc << sp << 0.0 << "\n";
         }
 
-        
+        scalarName = "TWISTAOA_SENS";
+        myfile << "VECTORS " << scalarName << " double64\n";
+        for (int i = 0; i < NXI; i++) {
+            myfile << sens[0][i].twistAOA << sp << sens[1][i].twistAOA << sp << 0.0 << "\n";
+        }
+
+        scalarName = "PHASESHIFT_SENS";
+        myfile << "VECTORS " << scalarName << " double64\n";
+        for (int i = 0; i < NXI; i++) {
+            myfile << sens[0][i].phaseShift << sp << sens[1][i].phaseShift << sp << 0.0 << "\n";
+        }
+
+        scalarName = "TWISTMAG_SENS";
+        myfile << "VECTORS " << scalarName << " double64\n";
+        for (int i = 0; i < NXI; i++) {
+            myfile << sens[0][i].twistMag << sp << sens[1][i].twistMag << sp << 0.0 << "\n";
+        }
+
+        scalarName = "AOA_SENS";
+        myfile << "VECTORS " << scalarName << " double64\n";
+        for (int i = 0; i < NXI; i++) {
+            myfile << sens[0][i].AOA << sp << sens[1][i].AOA << sp << 0.0 << "\n";
+        }
+
+        scalarName = "CHORD_SENS";
+        myfile << "VECTORS " << scalarName << " double64\n";
+        for (int i = 0; i < NXI; i++) {
+            myfile << sens[0][i].chord << sp << sens[1][i].chord << sp << 0.0 << "\n";
+        }
 
         myfile.close();
     }

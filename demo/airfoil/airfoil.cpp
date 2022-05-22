@@ -56,7 +56,7 @@ void testDerivatives() {
             dderiv += airfoil0.testsens[d][i].chord * pertubation[d][i] * p.chord * h;
             finiteDiff += (airfoilf.testpos[d][i] - airfoil0.testpos[d][i]) * pertubation[d][i];
 
-            std::cout << "dderiv = " << dderiv << " finiteDiff = " << finiteDiff << std::endl;
+            //std::cout << "dderiv = " << dderiv << " finiteDiff = " << finiteDiff << std::endl;
         }
     }
     
